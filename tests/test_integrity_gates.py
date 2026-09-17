@@ -22,7 +22,11 @@ if "transformers" not in sys.modules:
 
 from llst.config_loader import ConfigError, load_resolved_config, redacted_config
 from llst.dataset_lock import DatasetSnapshotError, compute_dataset_snapshot_hash, verify_dataset_snapshots
-from llst.performance.runner import _collect_perf_artifacts, verify_performance_execution_manifest
+from llst.performance.runner import (
+    _append_ignore_eos_argument,
+    _collect_perf_artifacts,
+    verify_performance_execution_manifest,
+)
 from llst.performance.workload_generator import sha256_file, verify_workload_manifest
 
 
@@ -146,6 +150,15 @@ class IntegrityGateTests(unittest.TestCase):
             artifacts, audit = _collect_perf_artifacts(root, expected_requests=2)
             self.assertEqual(audit, {"records": 2, "successful": 2})
             self.assertEqual(len(artifacts), 4)
+
+    def test_protocol_ignore_eos_is_forwarded_to_evalscope(self):
+        command = ["evalscope", "perf"]
+        _append_ignore_eos_argument(command, True)
+        self.assertEqual(command[-2:], ["--extra-args", '{"ignore_eos":true}'])
+
+        unchanged = ["evalscope", "perf"]
+        _append_ignore_eos_argument(unchanged, False)
+        self.assertEqual(unchanged, ["evalscope", "perf"])
 
     def test_performance_execution_manifest_requires_unambiguous_artifact_root(self):
         with tempfile.TemporaryDirectory() as temp_dir:

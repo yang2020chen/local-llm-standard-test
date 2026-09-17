@@ -60,6 +60,29 @@ def _collect_perf_artifacts(out_dir, expected_requests):
     return artifacts, _verify_perf_database(database_path, expected_requests)
 
 
+def _append_ignore_eos_argument(command, enabled):
+    """Pass the protocol's EOS policy to EvalScope exactly once."""
+    if enabled:
+        command.extend(["--extra-args", json.dumps({"ignore_eos": True}, separators=(",", ":"))])
+    return command
+
+
+def _verify_perf_request_arguments(out_dir, expect_ignore_eos):
+    argument_paths = glob.glob(os.path.join(out_dir, "**", "benchmark_args.json"), recursive=True)
+    if len(argument_paths) != 1:
+        raise RuntimeError(f"PERFORMANCE_ARGUMENTS_INVALID: expected one benchmark_args.json in {out_dir}")
+    with open(argument_paths[0], "r", encoding="utf-8") as argument_file:
+        arguments = json.load(argument_file)
+    actual = (arguments.get("extra_args") or {}).get("ignore_eos")
+    if expect_ignore_eos and actual is not True:
+        raise RuntimeError(
+            f"PERFORMANCE_ARGUMENTS_MISMATCH: {argument_paths[0]} ignore_eos={actual!r}, "
+            "expected True"
+        )
+    if not expect_ignore_eos and actual is not None:
+        raise RuntimeError(f"PERFORMANCE_ARGUMENTS_MISMATCH: unexpected ignore_eos in {argument_paths[0]}")
+
+
 def _safe_relative_path(path, label):
     if not isinstance(path, str) or not path:
         raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: missing {label}")
@@ -108,6 +131,17 @@ def verify_performance_execution_manifest(run_dir):
             if _sha256_file(artifact_path) != metadata.get("sha256") or os.path.getsize(artifact_path) != metadata.get("bytes"):
                 raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: changed artifact {artifact_path}")
 
+        if manifest.get("ignore_eos") is True:
+            argument_paths = [
+                relative_path for relative_path in artifacts if os.path.basename(relative_path) == "benchmark_args.json"
+            ]
+            if len(argument_paths) != 1:
+                raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: missing benchmark args for {case_name}")
+            with open(os.path.join(run_dir, output_dir, argument_paths[0]), "r", encoding="utf-8") as argument_file:
+                arguments = json.load(argument_file)
+            if (arguments.get("extra_args") or {}).get("ignore_eos") is not True:
+                raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: ignore_eos missing in {case_name}")
+
         database = case.get("database")
         if not isinstance(database, dict) or database.get("records") != database.get("successful"):
             raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: failed requests in {case_name}")
@@ -125,6 +159,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
     seed = perf_cfg.get("seed", 20260917)
     parallel = perf_cfg.get("parallel", 1)
     temp = perf_cfg.get("temperature", 0.0)
+    ignore_eos = perf_cfg.get("ignore_eos") is True
 
     prompt_lengths = [512, 4096] if smoke else perf_cfg.get("prompt_lengths", [512, 4096, 16384, 28672])
     requests_per_length = 1 if smoke else perf_cfg.get("requests_per_length", 2)
@@ -170,6 +205,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
             "--stream",
             "--outputs-dir", out_dir
         ]
+        _append_ignore_eos_argument(cmd, ignore_eos)
 
         with open(log_file, "w", encoding="utf-8") as out_f:
             p = subprocess.run(cmd, stdout=out_f, stderr=subprocess.STDOUT)
@@ -177,6 +213,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
                 print(f"[ERROR] Performance run for length {length} failed. Log: {log_file}", file=sys.stderr)
                 raise RuntimeError(f"Performance run for length {length} failed")
         verify_workload_manifest(manifest, workload_dir)
+        _verify_perf_request_arguments(out_dir, ignore_eos)
         artifacts, database_audit = _collect_perf_artifacts(out_dir, requests_per_length)
         print(f"[INFO] Performance: ISL {length} completed successfully.")
         perf_results[length] = out_dir
@@ -184,6 +221,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
             "workload_file": case_info["file"],
             "workload_sha256": case_info["sha256"],
             "output_dir": os.path.relpath(out_dir, run_dir),
+            "ignore_eos": ignore_eos,
             "artifacts": artifacts,
             "database": database_audit,
         }
@@ -192,6 +230,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
         "workload_manifest": os.path.basename(manifest_path),
         "workload_manifest_sha256": _sha256_file(manifest_path),
         "smoke": smoke,
+        "ignore_eos": ignore_eos,
         "cases": execution_cases,
     }
     execution_path = os.path.join(run_dir, "performance", "execution_manifest.json")
