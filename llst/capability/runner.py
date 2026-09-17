@@ -1,9 +1,37 @@
-import os, sys, glob, json, yaml, hashlib
+import glob
+import hashlib
+import json
+import os
+import sys
 from typing import Dict, Any, List
 from evalscope.config import TaskConfig
 from evalscope.run import run_task
 from llst.capability.sample_resolver import resolve_all_pinned_samples, extract_prompt_texts
 from llst.capability.pinned_dataset import prepare_pinned_datasets
+
+
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as artifact_file:
+        for chunk in iter(lambda: artifact_file.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _canonical_json_hash(records):
+    payload = json.dumps(records, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _artifact_metadata(paths, run_dir):
+    return [
+        {
+            "path": os.path.relpath(path, run_dir),
+            "sha256": _sha256_file(path),
+            "bytes": os.path.getsize(path),
+        }
+        for path in sorted(paths)
+    ]
 
 def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_bin: str = "evalscope", smoke: bool = False):
     cap_cfg = resolved_cfg["capability"]
@@ -53,17 +81,13 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
         work_dir = os.path.join(run_dir, "capability", name)
         os.makedirs(work_dir, exist_ok=True)
 
-        # Check if already computed in work_dir
+        # A run ID is immutable. Reusing previous prediction files would make the
+        # new run's identity dependent on unverified historical artifacts.
         existing_preds = glob.glob(os.path.join(work_dir, "**", "predictions", "**", "*.jsonl"), recursive=True)
         if existing_preds:
-            total_existing = 0
-            for ep in existing_preds:
-                with open(ep, "r", encoding="utf-8") as ep_f:
-                    total_existing += sum(1 for line in ep_f if line.strip())
-            if total_existing == len(target_samples):
-                print(f"[INFO] Capability: {name} already evaluated ({total_existing} samples found), skipping execution.")
-                results[name] = work_dir
-                continue
+            raise RuntimeError(
+                f"RUN_DIRECTORY_REUSE_FORBIDDEN: {work_dir} already contains prediction files; use a new run ID"
+            )
 
         task_dict = {
             "model": model_name,
@@ -105,6 +129,9 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
     # Step 3: Audit executed predictions from disk
     print("[INFO] Capability: Auditing executed predictions from output files...")
     executed_samples = []
+    prediction_artifacts = []
+    report_artifacts = []
+    canonical_predictions = []
     
     for b in benchmarks:
         name = b["name"]
@@ -113,9 +140,15 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
         
         # Search for prediction jsonl files
         pred_pattern = os.path.join(work_dir, "**", "predictions", "**", "*.jsonl")
-        pred_files = glob.glob(pred_pattern, recursive=True)
+        pred_files = sorted(glob.glob(pred_pattern, recursive=True))
         if not pred_files:
             raise RuntimeError(f"PROTOCOL_EXECUTION_MISMATCH: No prediction files found for {name} in {work_dir}")
+        prediction_artifacts.extend(_artifact_metadata(pred_files, run_dir))
+
+        benchmark_reports = glob.glob(os.path.join(work_dir, "**", "reports", "**", "*.json"), recursive=True)
+        if not benchmark_reports:
+            raise RuntimeError(f"PROTOCOL_EXECUTION_MISMATCH: No benchmark reports found for {name} in {work_dir}")
+        report_artifacts.extend(_artifact_metadata(benchmark_reports, run_dir))
 
         # Collect all predictions for this benchmark
         preds = []
@@ -124,7 +157,9 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
                 for line in f:
                     line = line.strip()
                     if line:
-                        preds.append(json.loads(line))
+                        prediction = json.loads(line)
+                        preds.append(prediction)
+                        canonical_predictions.append({"benchmark": name, "prediction": prediction})
 
         print(f"[INFO] Capability: Found {len(preds)} prediction records for {name} (expected {len(target_samples)}).")
         if len(preds) != len(target_samples):
@@ -193,7 +228,10 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
         "executed_samples_sha256": executed_samples_sha256,
         "total_executed": len(executed_samples),
         "smoke": smoke,
-        "benchmarks": {b["name"]: len(samples_by_bm.get(b["name"], [])) for b in benchmarks}
+        "benchmarks": {b["name"]: len(samples_by_bm.get(b["name"], [])) for b in benchmarks},
+        "prediction_files": prediction_artifacts,
+        "prediction_records_sha256": _canonical_json_hash(canonical_predictions),
+        "benchmark_report_files": report_artifacts,
     }
     with open(os.path.join(run_dir, "capability", "execution_manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest_meta, f, indent=2, ensure_ascii=False)

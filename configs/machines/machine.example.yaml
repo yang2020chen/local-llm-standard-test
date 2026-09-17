@@ -5,6 +5,7 @@ model:
   name: "Qwen3.8-Flash-Next"
   backend: "llama-server"      # llama-server / vLLM / SGLang / Ollama
   quantization: "UD-Q3_K_XL"
+  file: "/path/to/model.gguf"  # Optional but required for a publishable, hash-backed result
 
 api:
   base_url: "http://127.0.0.1:8000/v1"
@@ -13,9 +14,16 @@ api:
 
 tokenizer:
   path: "./tokenizer"          # Local directory containing tokenizer.json / tokenizer_config.json
+  fingerprint: "./configs/tokenizer_fingerprint.example.json"  # Replace with a fingerprint for this tokenizer
+  trust_remote_code: false      # Enable only after reviewing the tokenizer's custom code
 
 runtime:
   context_length: 32768        # Model maximum context window (must be >= 29184 for LLST v1.0 standard)
+  kv_cache_type: "f16"         # Record any reduced-precision KV cache used for the run
+  gpu_allocation: "GPU 0"      # Record the GPU(s) reserved for this service
+  service_name: "llama-server" # Service/process identity for reproducibility
+  service_version: "llama.cpp build/version" # Record the exact serving build
+  source_commit: "<git commit>" # Exact LLST source commit deployed to this machine
 
 output:
   root: "./outputs"            # Evaluation and benchmark report output directory

@@ -1,4 +1,16 @@
-import os, sys, json, glob
+import glob
+import hashlib
+import json
+import os
+import sys
+
+
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as artifact_file:
+        for chunk in iter(lambda: artifact_file.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 def aggregate_run_reports(run_dir, resolved_cfg):
     model_name = resolved_cfg["machine"]["model_name"]
@@ -12,6 +24,12 @@ def aggregate_run_reports(run_dir, resolved_cfg):
         "protocol_version": proto_ver,
         "benchmarks": {}
     }
+    cap_execution_manifest = os.path.join(cap_dir, "execution_manifest.json")
+    if os.path.isfile(cap_execution_manifest):
+        summary_cap["execution_manifest"] = {
+            "path": os.path.relpath(cap_execution_manifest, run_dir),
+            "sha256": _sha256_file(cap_execution_manifest),
+        }
 
     if os.path.exists(cap_dir):
         for b in os.listdir(cap_dir):
@@ -41,6 +59,12 @@ def aggregate_run_reports(run_dir, resolved_cfg):
         "protocol_version": proto_ver,
         "cases": []
     }
+    perf_execution_manifest = os.path.join(perf_dir, "execution_manifest.json")
+    if os.path.isfile(perf_execution_manifest):
+        summary_perf["execution_manifest"] = {
+            "path": os.path.relpath(perf_execution_manifest, run_dir),
+            "sha256": _sha256_file(perf_execution_manifest),
+        }
 
     if os.path.exists(perf_dir):
         for c in sorted(os.listdir(perf_dir)):
@@ -80,6 +104,11 @@ def aggregate_run_reports(run_dir, resolved_cfg):
         f.write("| Workload Case | Avg TTFT (ms) | Avg TPOT (ms) | Output Throughput (tok/s) | Spec Accept Rate |\n| :---: | :---: | :---: | :---: | :---: |\n")
         for c in summary_perf["cases"]:
             f.write(f"| {c['case']} | {c.get('avg_ttft_ms')} | {c.get('avg_tpot_ms')} | {c.get('output_throughput_tps')} | {c.get('spec_accept_rate')} |\n")
+        f.write("\n## Integrity Artifacts\n\n")
+        for label, summary in (("Capability", summary_cap), ("Performance", summary_perf)):
+            artifact = summary.get("execution_manifest")
+            if artifact:
+                f.write(f"- {label} execution manifest: `{artifact['path']}` (SHA-256: `{artifact['sha256']}`)\n")
 
     print(f"[INFO] Report aggregation complete: {report_md_path}")
     return cap_json_path, perf_json_path, report_md_path

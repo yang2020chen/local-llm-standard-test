@@ -93,6 +93,14 @@ echo "[INFO] Target Run Directory: $RUN_DIR"
 echo "[INFO] Run log initialized: $RUN_DIR/run.log"
 ln -sfn "$RUN_DIR/run.log" "${OUTPUT_ROOT}/${MODEL_NAME}/latest.log"
 echo "$RESOLVED_JSON" > "$RUN_DIR/meta/resolved_config.json"
+"$PYTHON" -c "
+from llst.config_loader import load_resolved_config
+from llst.environment import write_environment_record
+
+cfg = load_resolved_config('$PROTOCOL_PATH', '$MACHINE_PATH')
+path, _ = write_environment_record('$RUN_DIR', cfg, evalscope_bin='$EVALSCOPE')
+print(f'[INFO] Environment record written: {path}')
+"
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "[INFO] DRY RUN MODE: Verifying Full Execution Graph & Generating Workload..."
@@ -102,7 +110,13 @@ from llst.performance.workload_generator import generate_workload_plan, save_wor
 
 cfg = load_resolved_config('$PROTOCOL_PATH', '$MACHINE_PATH')
 tok_path = cfg['machine']['tokenizer_path']
-w = generate_workload_plan(tok_path, seed=20260917, prompt_lengths=[512, 4096, 16384, 28672], requests_per_length=2)
+w = generate_workload_plan(
+    tok_path,
+    seed=20260917,
+    prompt_lengths=[512, 4096, 16384, 28672],
+    requests_per_length=2,
+    trust_remote_code=cfg['machine']['tokenizer_trust_remote_code'],
+)
 mf_path, mf = save_workload_files(w, '$RUN_DIR/workload')
 print(f'[DRY RUN] Generated workload files for 4 tiers. Manifest: {mf_path}')
 for length, d in mf['cases'].items():

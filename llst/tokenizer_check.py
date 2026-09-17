@@ -2,7 +2,7 @@ import sys, os, hashlib, json
 from transformers import AutoTokenizer
 
 def verify_tokenizer(tok_path):
-    tok = AutoTokenizer.from_pretrained(tok_path, trust_remote_code=True)
+    tok = AutoTokenizer.from_pretrained(tok_path, trust_remote_code=False)
     report = {
         "tokenizer_class": tok.__class__.__name__,
         "vocab_size": getattr(tok, "vocab_size", None),

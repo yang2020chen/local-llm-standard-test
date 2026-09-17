@@ -1,19 +1,7 @@
-import os, sys, json, yaml, hashlib, glob
+import os, sys, json, yaml, hashlib
 from transformers import AutoTokenizer
 from llst.capability.sample_resolver import resolve_all_pinned_samples
-
-def compute_dataset_snapshot_hash(dataset_dir_name):
-    cache_root = os.environ.get("MODELSCOPE_CACHE", os.path.expanduser("~/.cache/modelscope/hub/datasets"))
-    p = os.path.join(cache_root, dataset_dir_name)
-    arrows = sorted(glob.glob(f"{p}/**/*.arrow", recursive=True))
-    if not arrows:
-        return None
-    combined_hash = hashlib.sha256()
-    for a in arrows:
-        with open(a, "rb") as af:
-            while chunk := af.read(65536):
-                combined_hash.update(chunk)
-    return combined_hash.hexdigest()
+from llst.dataset_lock import compute_dataset_snapshot_hash, verify_dataset_snapshots
 
 def validate_runtime_protocol(protocol_path, machine_path, project_root=None):
     if project_root is None:
@@ -28,27 +16,8 @@ def validate_runtime_protocol(protocol_path, machine_path, project_root=None):
     if protocol.get("protocol", {}).get("version") != "1.0":
         raise ValueError("Invalid protocol version. Expected '1.0'")
 
-    # 2. Check Dataset Snapshot Hashes
-    ds_manifest_rel = protocol.get("capability", {}).get("dataset_manifest", "v1/dataset_manifest.json")
-    ds_manifest_path = os.path.join(os.path.dirname(protocol_path), ds_manifest_rel)
-    with open(ds_manifest_path, "r", encoding="utf-8") as f:
-        ds_meta = json.load(f)
-
-    dir_map = {
-        "mmlu_pro": "TIGER-Lab___mmlu-pro",
-        "ifeval": "opencompass___ifeval",
-        "aime24": "evalscope___aime24",
-        "ceval": "evalscope___ceval",
-        "live_code_bench": "evalscope___livecodebench_code_generation_lite_parquet"
-    }
-
-    for bm, dirname in dir_map.items():
-        expected_snap = ds_meta["benchmarks"][bm].get("dataset_snapshot_sha256")
-        actual_snap = compute_dataset_snapshot_hash(dirname)
-        if expected_snap and actual_snap and expected_snap != actual_snap:
-            print(f"[ERROR] Snapshot hash mismatch for {bm}! Expected {expected_snap}, got {actual_snap}", file=sys.stderr)
-            raise RuntimeError(f"DATASET_SNAPSHOT_MISMATCH: {bm} arrow snapshot hash changed")
-
+    # 2. Check Dataset Snapshot Hashes. Missing snapshots are failures, not passes.
+    verify_dataset_snapshots(protocol_path)
     print("DATASET_SNAPSHOT_PASS")
 
     # 3. Deep Validate 102 Samples via Shared Sample Resolver
@@ -74,40 +43,47 @@ def validate_runtime_protocol(protocol_path, machine_path, project_root=None):
         tok_path = os.path.join(project_root, tok_path)
 
     fp_path = tok_info.get("fingerprint")
-    if fp_path:
-        if not os.path.isabs(fp_path):
-            fp_path = os.path.join(project_root, fp_path)
-        if not os.path.exists(fp_path):
-            raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: Fingerprint file not found at {fp_path}")
+    if not isinstance(fp_path, str) or not fp_path.strip():
+        raise RuntimeError("TOKENIZER_FINGERPRINT_MISSING: Machine profile must declare tokenizer.fingerprint")
+    if not os.path.isabs(fp_path):
+        fp_path = os.path.join(project_root, fp_path)
+    if not os.path.exists(fp_path):
+        raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: Fingerprint file not found at {fp_path}")
 
-        with open(fp_path, "r", encoding="utf-8") as f:
-            fp_expected = json.load(f)
+    with open(fp_path, "r", encoding="utf-8") as f:
+        fp_expected = json.load(f)
+    if not isinstance(fp_expected.get("files"), dict) or not fp_expected["files"]:
+        raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Fingerprint must declare hashed files")
 
-        tok = AutoTokenizer.from_pretrained(tok_path, trust_remote_code=True)
-        if tok.__class__.__name__ != fp_expected.get("tokenizer_class"):
-            raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Tokenizer class mismatch")
-        if getattr(tok, "vocab_size", 0) != fp_expected.get("vocab_size"):
-            raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Tokenizer vocab size mismatch")
+    tok = AutoTokenizer.from_pretrained(
+        tok_path, trust_remote_code=bool(tok_info.get("trust_remote_code", False))
+    )
+    if tok.__class__.__name__ != fp_expected.get("tokenizer_class"):
+        raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Tokenizer class mismatch")
+    if getattr(tok, "vocab_size", 0) != fp_expected.get("vocab_size"):
+        raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Tokenizer vocab size mismatch")
 
-        for fname, fmeta in fp_expected.get("files", {}).items():
-            real_file = os.path.join(tok_path, fname)
-            if not os.path.exists(real_file):
-                real_file = os.path.join(os.path.realpath(tok_path), fname)
-            if not os.path.exists(real_file):
-                raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: File {fname} missing from tokenizer")
-            with open(real_file, "rb") as rf:
-                h = hashlib.sha256(rf.read()).hexdigest()
-            if h != fmeta["sha256"]:
-                raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: File {fname} hash mismatch")
+    for fname, fmeta in fp_expected["files"].items():
+        if not isinstance(fmeta, dict) or not isinstance(fmeta.get("sha256"), str):
+            raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: Invalid hash metadata for {fname}")
+        real_file = os.path.join(tok_path, fname)
+        if not os.path.exists(real_file):
+            real_file = os.path.join(os.path.realpath(tok_path), fname)
+        if not os.path.exists(real_file):
+            raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: File {fname} missing from tokenizer")
+        with open(real_file, "rb") as rf:
+            h = hashlib.sha256(rf.read()).hexdigest()
+        if h != fmeta["sha256"]:
+            raise RuntimeError(f"TOKENIZER_FINGERPRINT_MISMATCH: File {fname} hash mismatch")
 
-        b_spec = fp_expected.get("behavioral_verification", {})
-        if b_spec.get("sample_input"):
-            token_ids = tok.encode(b_spec["sample_input"])
-            token_hash = hashlib.sha256(str(token_ids).encode("utf-8")).hexdigest()
-            if token_hash != b_spec.get("token_ids_sha256"):
-                raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Behavioral token sequence SHA256 mismatch")
+    b_spec = fp_expected.get("behavioral_verification", {})
+    if b_spec.get("sample_input"):
+        token_ids = tok.encode(b_spec["sample_input"])
+        token_hash = hashlib.sha256(str(token_ids).encode("utf-8")).hexdigest()
+        if token_hash != b_spec.get("token_ids_sha256"):
+            raise RuntimeError("TOKENIZER_FINGERPRINT_MISMATCH: Behavioral token sequence SHA256 mismatch")
 
-        print("TOKENIZER_FINGERPRINT_PASS")
+    print("TOKENIZER_FINGERPRINT_PASS")
 
     print("PROTOCOL_VERIFICATION_PASS")
     return res
