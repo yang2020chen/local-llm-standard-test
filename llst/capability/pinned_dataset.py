@@ -19,7 +19,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
     if "ifeval" in resolved_samples_by_bm:
         ifeval_samples = resolved_samples_by_bm["ifeval"]
         p_ifeval = "opencompass/ifeval"
-        raw_ifeval = DatasetHub(data_id_or_path=p_ifeval).load(split="train", subset="default")
+        raw_ifeval = DatasetHub(data_id_or_path=p_ifeval, trust_remote=False).load(split="train", subset="default")
         
         target_keys = set(str(s.sample_id) for s in ifeval_samples)
         matched = [i for i, row in enumerate(raw_ifeval) if str(row.get("key")) in target_keys]
@@ -38,7 +38,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
     # 2. AIME24
     if "aime24" in resolved_samples_by_bm:
         p_aime = "evalscope/aime24"
-        raw_aime = DatasetHub(data_id_or_path=p_aime).load(split="test", subset="default")
+        raw_aime = DatasetHub(data_id_or_path=p_aime, trust_remote=False).load(split="test", subset="default")
         pinned_aime = raw_aime.select(range(10))
         h = _dataset_cache_hash(p_aime, "test", "default", None, "modelscope", {})
         target = os.path.join(cache_dir, f"{safe_filename(p_aime)}-{h}")
@@ -50,7 +50,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
         p_lcb = "evalscope/livecodebench_code_generation_lite_parquet"
         lcb_samples = resolved_samples_by_bm["live_code_bench"]
         lcb_ids = [str(s.sample_id) for s in lcb_samples]
-        raw_lcb = DatasetHub(data_id_or_path=p_lcb).load(split="test", subset="release_latest")
+        raw_lcb = DatasetHub(data_id_or_path=p_lcb, trust_remote=False).load(split="test", subset="release_latest")
         matched_lcb = []
         for eid in lcb_ids:
             for i, row in enumerate(raw_lcb):
@@ -70,7 +70,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
         for s in ceval_samples:
             sub = s.subset
             # Val split
-            raw_val = DatasetHub(data_id_or_path=p_ceval).load(split="val", subset=sub)
+            raw_val = DatasetHub(data_id_or_path=p_ceval, trust_remote=False).load(split="val", subset=sub)
             pinned_val = raw_val.select([s.sample_index])
             h_val = _dataset_cache_hash(p_ceval, "val", sub, None, "modelscope", {})
             target_val = os.path.join(cache_dir, f"{safe_filename(p_ceval)}-{h_val}")
@@ -78,7 +78,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
                 pinned_val.save_to_disk(target_val)
             
             # Dev split (for few-shot)
-            raw_dev = DatasetHub(data_id_or_path=p_ceval).load(split="dev", subset=sub)
+            raw_dev = DatasetHub(data_id_or_path=p_ceval, trust_remote=False).load(split="dev", subset=sub)
             h_dev = _dataset_cache_hash(p_ceval, "dev", sub, None, "modelscope", {})
             target_dev = os.path.join(cache_dir, f"{safe_filename(p_ceval)}-{h_dev}")
             if not os.path.exists(target_dev):
@@ -89,7 +89,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
         p_mmlu = "TIGER-Lab/MMLU-Pro"
         mmlu_samples = resolved_samples_by_bm["mmlu_pro"]
         mmlu_ids = set(str(s.sample_id) for s in mmlu_samples)
-        raw_mmlu_test = DatasetHub(data_id_or_path=p_mmlu).load(split="test", subset="default")
+        raw_mmlu_test = DatasetHub(data_id_or_path=p_mmlu, trust_remote=False).load(split="test", subset="default")
         matched_mmlu = [i for i, row in enumerate(raw_mmlu_test) if str(row.get("question_id")) in mmlu_ids]
         pinned_mmlu = raw_mmlu_test.select(matched_mmlu)
         h_test = _dataset_cache_hash(p_mmlu, "test", "default", None, "modelscope", {})
@@ -98,7 +98,7 @@ def prepare_pinned_datasets(run_dir: str, resolved_samples_by_bm: Dict[str, List
             pinned_mmlu.save_to_disk(target_test)
 
         # Fewshot (validation split)
-        raw_mmlu_val = DatasetHub(data_id_or_path=p_mmlu).load(split="validation", subset="default")
+        raw_mmlu_val = DatasetHub(data_id_or_path=p_mmlu, trust_remote=False).load(split="validation", subset="default")
         h_val = _dataset_cache_hash(p_mmlu, "validation", "default", None, "modelscope", {})
         target_val = os.path.join(cache_dir, f"{safe_filename(p_mmlu)}-{h_val}")
         if not os.path.exists(target_val):

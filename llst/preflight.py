@@ -11,24 +11,31 @@ def run_preflight(resolved_cfg, check_sandbox=True):
     tok_path = m["tokenizer_path"]
     ctx_len = m["context_length"]
     
-    # 1. API Connectivity Check
+    # 1. API credentials and connectivity check
     models_url = f"{api_base.rstrip('/')}/models"
-    headers = {"Authorization": f"Bearer {api_key}"} if api_key and api_key != "EMPTY" else {}
-    try:
-        resp = requests.get(models_url, headers=headers, timeout=5)
-        if resp.status_code == 200:
-            print(f"[PREFLIGHT PASS] API Endpoint reachable: {models_url} (HTTP 200)")
-        else:
-            errors.append(f"API Endpoint returned HTTP {resp.status_code}: {models_url}")
-    except Exception as e:
-        errors.append(f"Cannot connect to API endpoint {models_url}: {e}")
+    if not api_key:
+        errors.append(f"API_KEY_MISSING: environment variable {m['api_key_env']} is not set")
+    else:
+        headers = {"Authorization": f"Bearer {api_key}"}
+        try:
+            resp = requests.get(models_url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                print(f"[PREFLIGHT PASS] API Endpoint reachable: {models_url} (HTTP 200)")
+            elif resp.status_code in (401, 403):
+                errors.append(f"API_AUTH_FAILED: HTTP {resp.status_code} from {models_url}")
+            else:
+                errors.append(f"API_ENDPOINT_FAILED: HTTP {resp.status_code} from {models_url}")
+        except requests.RequestException as e:
+            errors.append(f"API_ENDPOINT_UNREACHABLE: {models_url}: {e}")
 
     # 2. Tokenizer Check
     if not os.path.exists(tok_path):
         errors.append(f"Tokenizer directory does not exist: {tok_path}")
     else:
         try:
-            tok = AutoTokenizer.from_pretrained(tok_path, trust_remote_code=True)
+            tok = AutoTokenizer.from_pretrained(
+                tok_path, trust_remote_code=m.get("tokenizer_trust_remote_code", False)
+            )
             vocab = getattr(tok, "vocab_size", "unknown")
             print(f"[PREFLIGHT PASS] Tokenizer loaded successfully: class={tok.__class__.__name__}, vocab={vocab}")
         except Exception as e:
@@ -44,7 +51,12 @@ def run_preflight(resolved_cfg, check_sandbox=True):
     else:
         print(f"[PREFLIGHT PASS] Context length ({ctx_len}) satisfies minimum requirement ({required_ctx})")
 
-    # 4. Docker Sandbox Check
+    # 4. Tokenizer fingerprint is a mandatory protocol gate.
+    fp_path = m.get("tokenizer_fingerprint")
+    if not fp_path or not os.path.isfile(fp_path):
+        errors.append(f"TOKENIZER_FINGERPRINT_MISSING: {fp_path or '<unset>'}")
+
+    # 5. Docker Sandbox Check
     sandbox_healthy = False
     try:
         import docker

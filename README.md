@@ -82,20 +82,34 @@ cp configs/machines/machine.example.yaml configs/machines/machine.local.yaml
 
 Edit `configs/machines/machine.local.yaml`:
 ```yaml
-machine:
-  model_name: "Your-Model-Name"
-  api_base: "http://127.0.0.1:8082/v1"
-  api_key: "${LLST_API_KEY}"
+model:
+  name: "Your-Model-Name"
+
+api:
+  base_url: "http://127.0.0.1:8082/v1"
+  perf_url: "http://127.0.0.1:8082/v1/completions"
+  api_key_env: "LLST_API_KEY"
+
+tokenizer:
+  path: "./tokenizer"
+  fingerprint: "./tokenizer_fingerprint.json"
+  trust_remote_code: false
+
+runtime:
   context_length: 32768
-  tokenizer:
-    path: "./tokenizer"
-    fingerprint: "examples/baseline_001/tokenizer_fingerprint.json"
+
+output:
+  root: "./outputs"
 ```
 
 Export your local API key:
 ```bash
 export LLST_API_KEY="your-local-api-key"
 ```
+
+`tokenizer.fingerprint` is mandatory. Create it from the exact tokenizer used by
+the server, store it outside source control when it is machine-specific, and do
+not enable `trust_remote_code` unless that tokenizer code has been reviewed.
 
 ### 3. Verification & Preflight Gate
 Run preflight inspection to verify network connectivity, context length limit, tokenizer fingerprint, and protocol sample integrity:
