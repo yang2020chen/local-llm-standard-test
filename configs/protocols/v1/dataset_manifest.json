@@ -1,0 +1,146 @@
+{
+  "protocol_version": "1.0",
+  "evalscope_version": "1.12.0",
+  "benchmarks": {
+    "mmlu_pro": {
+      "evalscope_name": "mmlu_pro",
+      "adapter_class": "MMLUProAdapter",
+      "dataset_hub": "modelscope",
+      "dataset_id": "TIGER-Lab/MMLU-Pro",
+      "dataset_revision": null,
+      "evaluation_fingerprint": "sha256:9075d237dc07a2802146502f14f338f02a7d6a60795679c5f6983b875798893b",
+      "subsets": [
+        "computer science",
+        "math",
+        "chemistry",
+        "engineering",
+        "law",
+        "biology",
+        "health",
+        "physics",
+        "business",
+        "philosophy",
+        "economics",
+        "other",
+        "psychology",
+        "history"
+      ],
+      "limit_per_subset": 3,
+      "total_samples": 42,
+      "eval_split": "test",
+      "few_shot_num": 5,
+      "dataset_revision_status": "unavailable",
+      "dataset_snapshot_sha256": "2f84af7f103231b0675e4331f72d850d3572c27652c7ed0b2e40577726e2fd12",
+      "verification_rule": "sample_id_index_plus_prompt_and_answer_hash"
+    },
+    "ifeval": {
+      "evalscope_name": "ifeval",
+      "adapter_class": "IFEvalAdapter",
+      "dataset_hub": "modelscope",
+      "dataset_id": "opencompass/ifeval",
+      "dataset_revision": null,
+      "evaluation_fingerprint": "sha256:88bcac87a77ba4a5df177d98764661d01d90db4a603aa11844fa68bddf829c59",
+      "subsets": [
+        "default"
+      ],
+      "limit_per_subset": 20,
+      "total_samples": 20,
+      "eval_split": "train",
+      "few_shot_num": 0,
+      "dataset_revision_status": "unavailable",
+      "dataset_snapshot_sha256": "3956b5cd8fcfccc6b8bd6781558fb097ac3857488a12d3c17c872bb22ba8735b",
+      "verification_rule": "sample_id_index_plus_prompt_and_answer_hash"
+    },
+    "aime24": {
+      "evalscope_name": "aime24",
+      "adapter_class": "AIME24Adapter",
+      "dataset_hub": "modelscope",
+      "dataset_id": "evalscope/aime24",
+      "dataset_revision": null,
+      "evaluation_fingerprint": "sha256:4c79135e1628651a8f4cb3fa226d924253fdae0125fcec43f1b7ef51b20cc8c8",
+      "subsets": [
+        "default"
+      ],
+      "limit_per_subset": 10,
+      "total_samples": 10,
+      "eval_split": "test",
+      "few_shot_num": 0,
+      "dataset_revision_status": "unavailable",
+      "dataset_snapshot_sha256": "7b2a477b0490c2e21bb5d653acb2d2ed586a1a455aa5986d18b5f141dbb96caa",
+      "verification_rule": "sample_id_index_plus_prompt_and_answer_hash"
+    },
+    "ceval": {
+      "evalscope_name": "ceval",
+      "adapter_class": "CEVALAdapter",
+      "dataset_hub": "modelscope",
+      "dataset_id": "evalscope/ceval",
+      "dataset_revision": null,
+      "evaluation_fingerprint": "sha256:ec4e8cd336bb8d6c526b8bd2c0d3458c77bc80e8334c2849f5dfab404dfed78c",
+      "subsets": [
+        "computer_network",
+        "operating_system",
+        "computer_architecture",
+        "college_programming",
+        "advanced_mathematics",
+        "probability_and_statistics",
+        "college_physics",
+        "college_chemistry",
+        "college_economics",
+        "business_administration",
+        "education_science",
+        "law",
+        "logic",
+        "chinese_language_and_literature",
+        "modern_chinese_history",
+        "high_school_history",
+        "basic_medicine",
+        "clinical_medicine",
+        "accountant",
+        "civil_servant"
+      ],
+      "limit_per_subset": 1,
+      "total_samples": 20,
+      "eval_split": "val",
+      "few_shot_num": 5,
+      "dataset_revision_status": "unavailable",
+      "dataset_snapshot_sha256": "9267ac74b91bb8bc80ca8771b40b5077ab8aaf2ad0107c6caba7d920167ab128",
+      "verification_rule": "sample_id_index_plus_prompt_and_answer_hash"
+    },
+    "live_code_bench": {
+      "evalscope_name": "live_code_bench",
+      "adapter_class": "LiveCodeBenchAdapter",
+      "dataset_hub": "modelscope",
+      "dataset_id": "evalscope/livecodebench_code_generation_lite_parquet",
+      "dataset_revision": null,
+      "evaluation_fingerprint": "sha256:2282fcf418450cf32f0efbfca4d8c47f22d85cc8d11001a465e31de2999cf8b0",
+      "subsets": [
+        "release_latest"
+      ],
+      "pinned_baseline_release": "release_latest_20260917",
+      "pinned_question_ids": [
+        "1873_A",
+        "1873_B",
+        "1873_D",
+        "1883_B",
+        "1883_C",
+        "1899_A",
+        "1899_B",
+        "1899_C",
+        "1899_D",
+        "2727"
+      ],
+      "limit_per_subset": 10,
+      "total_samples": 10,
+      "eval_split": "test",
+      "few_shot_num": 0,
+      "sandbox": {
+        "enabled": true,
+        "engine": "docker",
+        "image": "python:3.11-slim"
+      },
+      "dataset_revision_status": "unavailable",
+      "dataset_snapshot_sha256": "da520cc27801cf075aaa39a1c8c57b1e147fef0bf43976902f2e5b553a7bd37a",
+      "verification_rule": "sample_id_index_plus_prompt_and_answer_hash"
+    }
+  }
+}

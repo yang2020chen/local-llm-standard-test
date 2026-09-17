@@ -1,0 +1,29 @@
+# Machine-specific local profiles containing internal URLs or endpoints
+configs/machines/*.local.yaml
+*.local.yaml
+
+# Secrets and environment files
+.env
+.env.*
+private/*
+!private/.gitkeep
+
+# Output artifacts and run databases
+outputs/
+logs/
+cache/
+*.log
+*.sqlite
+*.db
+
+# Python virtual environment and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS metadata
+.DS_Store
+Thumbs.db

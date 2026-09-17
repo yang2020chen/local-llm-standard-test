@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLST Tokenizer Fingerprint",
+  "description": "Cryptographic and behavioral fingerprint for the tokenizer used in standardized evaluations.",
+  "model_name": "Qwen3.8-Flash-Next",
+  "tokenizer_class": "Qwen2Tokenizer",
+  "vocab_size": 248044,
+  "files": {
+    "tokenizer.json": {
+      "size": 19989325,
+      "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    },
+    "tokenizer_config.json": {
+      "size": 1165,
+      "sha256": "792fa3f0cb88b111e54ef3134c873531008c4df471d108da17903426e308aa7b"
+    },
+    "chat_template.jinja": {
+      "size": 8952,
+      "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+    }
+  },
+  "behavioral_verification": {
+    "sample_input": "Local LLM Standard Test v1.0 基准测试：102题与长文本压测。",
+    "token_count": 23,
+    "token_ids": [7090, 436, 10673, 11429, 3284, 343, 16, 13, 15, 220, 105222, 99449, 4960, 16, 15, 17, 96040, 95999, 95940, 109120, 96483, 96622, 1710],
+    "token_ids_sha256": "bc434373f09ad6f27be5257912d7923d1ec3cac24dfdb244f3f3cc016b1cb751"
+  }
+}

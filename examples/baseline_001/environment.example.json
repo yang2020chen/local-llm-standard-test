@@ -1,0 +1,24 @@
+{
+  "platform": {
+    "os": "Ubuntu 24.04 LTS (x86_64)",
+    "kernel": "6.14.0-37-generic",
+    "python": "3.12.3",
+    "evalscope": "1.12.0"
+  },
+  "accelerator": {
+    "gpu_model": "AMD Radeon RX 7900 XTX",
+    "gpu_count": 2,
+    "total_vram_gb": 48,
+    "rocm_version": "7.2.4",
+    "driver": "amdgpu"
+  },
+  "inference_engine": {
+    "engine": "llama-server",
+    "model": "Qwen3.8-Flash-Next-UD-Q3_K_XL",
+    "draft_model": "mtp-Qwen3.8-Flash-Next-shared-Q8_0",
+    "speculative_decoding": "draft-mtp-adaptive",
+    "split_mode": "layer",
+    "kv_cache_type": "q8_0",
+    "context_limit": 32768
+  }
+}

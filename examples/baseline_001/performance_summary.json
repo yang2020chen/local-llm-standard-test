@@ -1,0 +1,55 @@
+{
+  "benchmark_version": "1.0",
+  "model": "Qwen3.8-Flash-Next",
+  "hardware": "Dual AMD Radeon RX 7900 XTX (24GB x 2)",
+  "cases": [
+    {
+      "isl": 512,
+      "osl": 512,
+      "concurrency": 1,
+      "requests": 2,
+      "avg_ttft_ms": 1242.12,
+      "avg_tpot_ms": 35.41,
+      "output_throughput_tps": 26.4786,
+      "total_throughput_tps": 52.9572,
+      "spec_accept_rate": 0.3112,
+      "avg_decoded_tok_per_iter": 1.4517
+    },
+    {
+      "isl": 4096,
+      "osl": 512,
+      "concurrency": 1,
+      "requests": 2,
+      "avg_ttft_ms": 5093.84,
+      "avg_tpot_ms": 36.18,
+      "output_throughput_tps": 21.7118,
+      "total_throughput_tps": 195.406,
+      "spec_accept_rate": null,
+      "avg_decoded_tok_per_iter": null
+    },
+    {
+      "isl": 16384,
+      "osl": 512,
+      "concurrency": 1,
+      "requests": 2,
+      "avg_ttft_ms": 21415.37,
+      "avg_tpot_ms": 38.36,
+      "output_throughput_tps": 12.4827,
+      "total_throughput_tps": 411.93,
+      "spec_accept_rate": null,
+      "avg_decoded_tok_per_iter": null
+    },
+    {
+      "isl": 28672,
+      "osl": 512,
+      "concurrency": 1,
+      "requests": 2,
+      "avg_ttft_ms": 39341.04,
+      "avg_tpot_ms": 39.33,
+      "output_throughput_tps": 8.6139,
+      "total_throughput_tps": 490.994,
+      "spec_accept_rate": 0.0039,
+      "avg_decoded_tok_per_iter": 1.0039
+    }
+  ]
+}

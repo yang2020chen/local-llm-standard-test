@@ -1,0 +1,9 @@
+evalscope==1.12.0
+transformers>=4.40.0
+PyYAML>=6.0.1
+docker>=7.0.0
+ms-enclave>=0.0.8
+openai>=1.0.0
+numpy>=1.26.0
+pyarrow>=14.0.0
+pandas>=2.0.0

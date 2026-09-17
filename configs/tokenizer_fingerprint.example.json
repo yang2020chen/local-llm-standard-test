@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLST Tokenizer Fingerprint Template",
+  "description": "Standardized cryptographic and behavioral fingerprint template for model tokenizers.",
+  "model_name": "your-model-name",
+  "tokenizer_class": "AutoTokenizerClass",
+  "vocab_size": 128000,
+  "files": {
+    "tokenizer.json": {
+      "size": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "tokenizer_config.json": {
+      "size": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "behavioral_verification": {
+    "sample_input": "Local LLM Standard Test v1.0 基准测试：102题与长文本压测。",
+    "token_count": 0,
+    "token_ids": [],
+    "token_ids_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

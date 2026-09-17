@@ -1,0 +1,21 @@
+# Machine Profile Template for LLST (Local LLM Standard Test)
+# Copy this file to machine.local.yaml and configure for your local hardware/service.
+
+model:
+  name: "Qwen3.8-Flash-Next"
+  backend: "llama-server"      # llama-server / vLLM / SGLang / Ollama
+  quantization: "UD-Q3_K_XL"
+
+api:
+  base_url: "http://127.0.0.1:8000/v1"
+  perf_url: "http://127.0.0.1:8000/v1/completions"
+  api_key_env: "LLST_API_KEY"  # Read API key securely from environment variable
+
+tokenizer:
+  path: "./tokenizer"          # Local directory containing tokenizer.json / tokenizer_config.json
+
+runtime:
+  context_length: 32768        # Model maximum context window (must be >= 29184 for LLST v1.0 standard)
+
+output:
+  root: "./outputs"            # Evaluation and benchmark report output directory

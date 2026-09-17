@@ -1,0 +1,73 @@
+protocol:
+  name: "Local LLM Standard Test (LLST)"
+  version: "1.0"
+  description: "Standardized 102-question capability evaluation and 4-tier long-context performance benchmark."
+
+capability:
+  manifest: "v1/sample_manifest.json"
+  dataset_manifest: "v1/dataset_manifest.json"
+  eval_batch_size: 1
+  seed: 42
+  generation:
+    temperature: 0.0
+    max_tokens: 2048
+    stream: true
+  benchmarks:
+    - name: "mmlu_pro"
+      limit: 3
+      label: "General knowledge + reasoning"
+    - name: "ifeval"
+      limit: 20
+      label: "Instruction following"
+    - name: "aime24"
+      limit: 10
+      label: "Math reasoning"
+    - name: "ceval"
+      limit: 1
+      label: "Chinese knowledge + reasoning"
+      subset_list:
+        - computer_network
+        - operating_system
+        - computer_architecture
+        - college_programming
+        - advanced_mathematics
+        - probability_and_statistics
+        - college_physics
+        - college_chemistry
+        - college_economics
+        - business_administration
+        - education_science
+        - law
+        - logic
+        - chinese_language_and_literature
+        - modern_chinese_history
+        - high_school_history
+        - basic_medicine
+        - clinical_medicine
+        - accountant
+        - civil_servant
+    - name: "live_code_bench"
+      limit: 10
+      label: "Coding"
+      subset_list:
+        - release_latest
+      sandbox:
+        enabled: true
+        engine: "docker"
+        image: "python:3.11-slim"
+
+performance:
+  dataset: "random"
+  seed: 20260917
+  parallel: 1
+  temperature: 0.0
+  stream: true
+  tokenize_prompt: true
+  ignore_eos: true
+  requests_per_length: 2
+  output_tokens: 512
+  prompt_lengths:
+    - 512
+    - 4096
+    - 16384
+    - 28672

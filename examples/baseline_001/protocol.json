@@ -1,0 +1,13 @@
+{
+  "name": "Local LLM Standard Test (LLST)",
+  "version": "1.0",
+  "capability_questions": 102,
+  "performance_tiers": [
+    512,
+    4096,
+    16384,
+    28672
+  ],
+  "performance_output_tokens": 512,
+  "performance_seed": 20260917
+}
