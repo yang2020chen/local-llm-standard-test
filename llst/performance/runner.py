@@ -59,6 +59,60 @@ def _collect_perf_artifacts(out_dir, expected_requests):
     database_path = os.path.join(out_dir, database_paths[0])
     return artifacts, _verify_perf_database(database_path, expected_requests)
 
+
+def _safe_relative_path(path, label):
+    if not isinstance(path, str) or not path:
+        raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: missing {label}")
+    normalized = os.path.normpath(path)
+    if os.path.isabs(normalized) or normalized == ".." or normalized.startswith(f"..{os.sep}"):
+        raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: unsafe {label}: {path}")
+    return normalized
+
+
+def verify_performance_execution_manifest(run_dir):
+    """Re-verify every byte referenced by the persisted performance manifest."""
+    manifest_path = os.path.join(run_dir, "performance", "execution_manifest.json")
+    if not os.path.isfile(manifest_path):
+        raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISSING: {manifest_path}")
+    with open(manifest_path, "r", encoding="utf-8") as manifest_file:
+        manifest = json.load(manifest_file)
+
+    workload_name = _safe_relative_path(manifest.get("workload_manifest"), "workload_manifest")
+    workload_path = os.path.join(run_dir, "workload", workload_name)
+    expected_workload_hash = manifest.get("workload_manifest_sha256")
+    if not os.path.isfile(workload_path) or _sha256_file(workload_path) != expected_workload_hash:
+        raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: workload manifest {workload_path}")
+
+    cases = manifest.get("cases")
+    if not isinstance(cases, dict) or not cases:
+        raise RuntimeError("PERFORMANCE_EXECUTION_MANIFEST_INVALID: cases must be a non-empty mapping")
+    for case_name, case in cases.items():
+        if not isinstance(case, dict):
+            raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: case {case_name} is not a mapping")
+        workload_file = _safe_relative_path(case.get("workload_file"), f"{case_name}.workload_file")
+        workload_path = os.path.join(run_dir, "workload", workload_file)
+        if not os.path.isfile(workload_path) or _sha256_file(workload_path) != case.get("workload_sha256"):
+            raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: workload {workload_path}")
+
+        output_dir = _safe_relative_path(case.get("output_dir"), f"{case_name}.output_dir")
+        if not output_dir.startswith(f"performance{os.sep}"):
+            raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: {case_name}.output_dir must be under performance/")
+        artifacts = case.get("artifacts")
+        if not isinstance(artifacts, dict) or not artifacts:
+            raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_INVALID: no artifacts for {case_name}")
+        for relative_path, metadata in artifacts.items():
+            artifact_rel = _safe_relative_path(relative_path, f"{case_name}.artifact")
+            artifact_path = os.path.join(run_dir, output_dir, artifact_rel)
+            if not isinstance(metadata, dict) or not os.path.isfile(artifact_path):
+                raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: missing artifact {artifact_path}")
+            if _sha256_file(artifact_path) != metadata.get("sha256") or os.path.getsize(artifact_path) != metadata.get("bytes"):
+                raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: changed artifact {artifact_path}")
+
+        database = case.get("database")
+        if not isinstance(database, dict) or database.get("records") != database.get("successful"):
+            raise RuntimeError(f"PERFORMANCE_EXECUTION_MANIFEST_MISMATCH: failed requests in {case_name}")
+    return manifest
+
 def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smoke=False):
     perf_cfg = resolved_cfg["performance"]
     mach_cfg = resolved_cfg["machine"]
@@ -129,6 +183,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
         execution_cases[str(length)] = {
             "workload_file": case_info["file"],
             "workload_sha256": case_info["sha256"],
+            "output_dir": os.path.relpath(out_dir, run_dir),
             "artifacts": artifacts,
             "database": database_audit,
         }
@@ -142,6 +197,7 @@ def run_performance_suite(resolved_cfg, run_dir, evalscope_bin="evalscope", smok
     execution_path = os.path.join(run_dir, "performance", "execution_manifest.json")
     with open(execution_path, "w", encoding="utf-8") as manifest_file:
         json.dump(execution_manifest, manifest_file, indent=2, ensure_ascii=False)
+    verify_performance_execution_manifest(run_dir)
     print(f"[INFO] Performance: Execution manifest written: {execution_path}")
 
     return perf_results

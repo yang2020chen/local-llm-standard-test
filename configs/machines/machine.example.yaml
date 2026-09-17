@@ -22,6 +22,7 @@ runtime:
   kv_cache_type: "f16"         # Record any reduced-precision KV cache used for the run
   gpu_allocation: "GPU 0"      # Record the GPU(s) reserved for this service
   service_name: "llama-server" # Service/process identity for reproducibility
+  service_version: "llama.cpp build/version" # Record the exact serving build
 
 output:
   root: "./outputs"            # Evaluation and benchmark report output directory

@@ -22,7 +22,7 @@ if "transformers" not in sys.modules:
 
 from llst.config_loader import ConfigError, load_resolved_config, redacted_config
 from llst.dataset_lock import DatasetSnapshotError, compute_dataset_snapshot_hash, verify_dataset_snapshots
-from llst.performance.runner import _collect_perf_artifacts
+from llst.performance.runner import _collect_perf_artifacts, verify_performance_execution_manifest
 from llst.performance.workload_generator import sha256_file, verify_workload_manifest
 
 
@@ -145,6 +145,47 @@ class IntegrityGateTests(unittest.TestCase):
             artifacts, audit = _collect_perf_artifacts(root, expected_requests=2)
             self.assertEqual(audit, {"records": 2, "successful": 2})
             self.assertEqual(len(artifacts), 4)
+
+    def test_performance_execution_manifest_requires_unambiguous_artifact_root(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            workload_dir = root / "workload"
+            output_dir = root / "performance" / "isl_4_osl_1" / "result"
+            workload_dir.mkdir(parents=True)
+            output_dir.mkdir(parents=True)
+            workload_file = workload_dir / "workload_isl_4.jsonl"
+            workload_manifest = workload_dir / "workload_manifest.json"
+            workload_file.write_text("[1,2,3,4]\n", encoding="utf-8")
+            workload_manifest.write_text("{}", encoding="utf-8")
+            for filename in ("benchmark_args.json", "benchmark_percentile.json", "benchmark_summary.json"):
+                (output_dir / filename).write_text("{}", encoding="utf-8")
+            database = output_dir / "benchmark_data.db"
+            with sqlite3.connect(database) as connection:
+                connection.execute("CREATE TABLE result (success INTEGER)")
+                connection.execute("INSERT INTO result VALUES (1)")
+            artifacts, database_audit = _collect_perf_artifacts(output_dir, expected_requests=1)
+            manifest = {
+                "workload_manifest": workload_manifest.name,
+                "workload_manifest_sha256": sha256_file(workload_manifest),
+                "smoke": False,
+                "cases": {
+                    "4": {
+                        "workload_file": workload_file.name,
+                        "workload_sha256": sha256_file(workload_file),
+                        "output_dir": str(output_dir.relative_to(root)),
+                        "artifacts": artifacts,
+                        "database": database_audit,
+                    }
+                },
+            }
+            execution_path = root / "performance" / "execution_manifest.json"
+            execution_path.write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertEqual(verify_performance_execution_manifest(root)["cases"]["4"]["database"]["records"], 1)
+
+            manifest["cases"]["4"]["output_dir"] = "../outside"
+            execution_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "PERFORMANCE_EXECUTION_MANIFEST_INVALID"):
+                verify_performance_execution_manifest(root)
 
 
 if __name__ == "__main__":

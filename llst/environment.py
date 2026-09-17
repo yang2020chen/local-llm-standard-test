@@ -47,6 +47,7 @@ def write_environment_record(run_dir, resolved_cfg, evalscope_bin="evalscope"):
             "kv_cache_type": machine.get("kv_cache_type"),
             "gpu_allocation": machine.get("gpu_allocation"),
             "service_name": machine.get("service_name"),
+            "service_version": machine.get("service_version"),
         },
         "software": {
             "python": sys.version.split()[0],

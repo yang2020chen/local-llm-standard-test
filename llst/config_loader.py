@@ -76,6 +76,7 @@ def load_resolved_config(protocol_path, machine_path):
             "kv_cache_type": runtime.get("kv_cache_type"),
             "gpu_allocation": runtime.get("gpu_allocation"),
             "service_name": runtime.get("service_name"),
+            "service_version": runtime.get("service_version"),
             "output_root": os.path.abspath(output_root),
         },
         "meta": {
