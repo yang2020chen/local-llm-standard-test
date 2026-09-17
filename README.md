@@ -1,6 +1,6 @@
 # Local LLM Standard Test (LLST)
 
-[![Release](https://img.shields.io/badge/release-v1.0.0--rc1-blue.svg)](https://github.com/yang2020chen/local-llm-standard-test/releases)
+[![Release](https://img.shields.io/badge/release-v1.0.0-brightgreen.svg)](https://github.com/yang2020chen/local-llm-standard-test/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg)]()
 [![Docker](https://img.shields.io/badge/docker-sandbox-2496ED.svg)]()
@@ -156,7 +156,7 @@ python3 scripts/test_negative_gates.py
 
 | ID | Hardware | Model | Context | Stage 1 (Capability) | Stage 2 (Perf 28k TTFT) | Status |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| [`#001`](examples/baseline_001/) | Dual AMD Radeon RX 7900 XTX (48GB) | Qwen3.8-Flash-Next (UD-Q3_K_XL + MTP) | 32k | 102 / 102 Verified | 4-Tier Verified | `VALIDATING` |
+| [`#001`](examples/baseline_001/) | Dual AMD Radeon RX 7900 XTX (48GB) | Qwen3.8-Flash-Next (UD-Q3_K_XL + MTP) | 32k | **MMLU-Pro: 85.7%**<br>**IFEval: 95.0%**<br>**CEval: 90.0%**<br>**LCB: 80.0%**<br>**AIME24: 30.0%** | **TTFT: 40.9s**<br>TPOT: 41.7ms<br>Throughput: 7.29 tok/s | `VERIFIED STABLE` |
 
 ---
 

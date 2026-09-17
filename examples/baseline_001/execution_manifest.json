@@ -1,0 +1,14 @@
+{
+  "manifest_sha256": "e8600599e166268c6f22f521f16ae52e396c5156cb8824a0f4a1ddbec4b0c331",
+  "resolved_samples_sha256": "a670cda807b00ca821afee715013165ea48574f60249f445be7f6e410cb3d4ef",
+  "executed_samples_sha256": "a670cda807b00ca821afee715013165ea48574f60249f445be7f6e410cb3d4ef",
+  "total_executed": 102,
+  "smoke": false,
+  "benchmarks": {
+    "mmlu_pro": 42,
+    "ifeval": 20,
+    "aime24": 10,
+    "ceval": 20,
+    "live_code_bench": 10
+  }
+}

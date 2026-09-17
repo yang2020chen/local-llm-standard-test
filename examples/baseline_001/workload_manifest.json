@@ -1,0 +1,34 @@
+{
+  "generator_version": "1.0",
+  "seed": 20260917,
+  "cases": {
+    "512": {
+      "file": "workload_isl_512.jsonl",
+      "path": "outputs/Qwen3.8-Flash-Next/20260917_125320/workload/workload_isl_512.jsonl",
+      "sha256": "1b8fcf2040f3aa2f24664387ecda7bf41729323714090b295ace2fe7695568de",
+      "requests_count": 2,
+      "prompt_length": 512
+    },
+    "4096": {
+      "file": "workload_isl_4096.jsonl",
+      "path": "outputs/Qwen3.8-Flash-Next/20260917_125320/workload/workload_isl_4096.jsonl",
+      "sha256": "1f65432773ea50725c59246853ba3389cf9c97b7cf985c2944cad430b00e0478",
+      "requests_count": 2,
+      "prompt_length": 4096
+    },
+    "16384": {
+      "file": "workload_isl_16384.jsonl",
+      "path": "outputs/Qwen3.8-Flash-Next/20260917_125320/workload/workload_isl_16384.jsonl",
+      "sha256": "cceefd7d992d6be26543b39b9b2ab290546fbfbf427556f0ce618eab17edd5ae",
+      "requests_count": 2,
+      "prompt_length": 16384
+    },
+    "28672": {
+      "file": "workload_isl_28672.jsonl",
+      "path": "outputs/Qwen3.8-Flash-Next/20260917_125320/workload/workload_isl_28672.jsonl",
+      "sha256": "ac40c720ebe260e568294b1dfd463898d44aa4c946628658dc05c4e7411624be",
+      "requests_count": 2,
+      "prompt_length": 28672
+    }
+  }
+}

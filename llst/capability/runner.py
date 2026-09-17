@@ -53,6 +53,18 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
         work_dir = os.path.join(run_dir, "capability", name)
         os.makedirs(work_dir, exist_ok=True)
 
+        # Check if already computed in work_dir
+        existing_preds = glob.glob(os.path.join(work_dir, "**", "predictions", "**", "*.jsonl"), recursive=True)
+        if existing_preds:
+            total_existing = 0
+            for ep in existing_preds:
+                with open(ep, "r", encoding="utf-8") as ep_f:
+                    total_existing += sum(1 for line in ep_f if line.strip())
+            if total_existing == len(target_samples):
+                print(f"[INFO] Capability: {name} already evaluated ({total_existing} samples found), skipping execution.")
+                results[name] = work_dir
+                continue
+
         task_dict = {
             "model": model_name,
             "api_url": api_base,
@@ -140,12 +152,22 @@ def run_capability_suite(resolved_cfg: Dict[str, Any], run_dir: str, evalscope_b
                 
                 # Match by prompt content hash
                 msgs = p.get("messages") or []
-                if msgs and msgs[0].get("content"):
-                    u_text = msgs[0]["content"]
-                    u_hash = hashlib.sha256(u_text.encode("utf-8")).hexdigest()
-                    if u_hash == rs.prompt_sha256:
-                        matched = True
-                        break
+                u_text = ""
+                s_text = ""
+                for m in msgs:
+                    if m.get("role") == "user":
+                        u_text = m.get("content", "")
+                    elif m.get("role") == "system":
+                        s_text = m.get("content", "")
+                
+                full_p = (s_text + "\n" + u_text).strip() if s_text else u_text.strip()
+                h_user = hashlib.sha256(u_text.strip().encode("utf-8")).hexdigest()
+                h_user_raw = hashlib.sha256(u_text.encode("utf-8")).hexdigest()
+                h_full = hashlib.sha256(full_p.encode("utf-8")).hexdigest()
+
+                if rs.prompt_sha256 in (h_user, h_user_raw, h_full):
+                    matched = True
+                    break
             
             if not matched:
                 raise RuntimeError(f"PROTOCOL_EXECUTION_MISMATCH: Target sample {rs.benchmark}/{rs.subset}/{rs.sample_id} was not executed!")
