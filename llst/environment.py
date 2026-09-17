@@ -53,6 +53,7 @@ def write_environment_record(run_dir, resolved_cfg, evalscope_bin="evalscope"):
             "python": sys.version.split()[0],
             "platform": platform.platform(),
             "evalscope": _command_version([evalscope_bin, "--version"]),
+            "source_commit": machine.get("source_commit"),
         },
     }
     if record["model"]["file"]:

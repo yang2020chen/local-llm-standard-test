@@ -23,6 +23,7 @@ runtime:
   gpu_allocation: "GPU 0"      # Record the GPU(s) reserved for this service
   service_name: "llama-server" # Service/process identity for reproducibility
   service_version: "llama.cpp build/version" # Record the exact serving build
+  source_commit: "<git commit>" # Exact LLST source commit deployed to this machine
 
 output:
   root: "./outputs"            # Evaluation and benchmark report output directory

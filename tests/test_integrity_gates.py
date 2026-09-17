@@ -68,6 +68,7 @@ class IntegrityGateTests(unittest.TestCase):
                     os.environ["LLST_TEST_API_KEY"] = old_value
             self.assertEqual(resolved["machine"]["api_key"], "secret-must-not-be-persisted")
             self.assertEqual(redacted_config(resolved)["machine"]["api_key"], "<redacted>")
+            self.assertIsNone(resolved["machine"]["source_commit"])
 
     def test_dataset_snapshot_is_required_and_byte_locked(self):
         with tempfile.TemporaryDirectory() as temp_dir:

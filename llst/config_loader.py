@@ -77,6 +77,7 @@ def load_resolved_config(protocol_path, machine_path):
             "gpu_allocation": runtime.get("gpu_allocation"),
             "service_name": runtime.get("service_name"),
             "service_version": runtime.get("service_version"),
+            "source_commit": runtime.get("source_commit"),
             "output_root": os.path.abspath(output_root),
         },
         "meta": {
